@@ -6,7 +6,7 @@
  * Plugin Name:       EUR2SEK
  * Plugin URI:        https://digitalerdurchbruch.de
  * Description:       This is a short description of what the plugin does. It's displayed in the WordPress admin area.
- * Version:           1.1.0
+ * Version:           1.1.1
  * Author:            Karl Friedrich
  * Author URI:        https://digitalerdurchbruch.de
  * License:           GPL-2.0+
@@ -24,7 +24,7 @@ if (!defined('WPINC')) {
  * Start at version 1.0.0 and use SemVer - https://semver.org
  * Rename this for your plugin and update it as you release new versions.
  */
-define('EUR2SEK_VERSION', '1.0.0');
+define('EUR2SEK_VERSION', '1.1.1');
 
 /**
  * [e2s] returns html
@@ -49,7 +49,7 @@ function e2s_ajax() {
 	<script>
 		jQuery(function($) {
 			var sendFeedBack = function(response) {
-				// console.log('response' + JSON.stringify(response));
+				console.log('response' + JSON.stringify(response));
 				$('#e2s-input-textarea').val(response);
 
 				var resultTable = document.getElementById('result-table');
@@ -81,7 +81,7 @@ function e2s_ajax() {
         			table += '</tbody>';
    		 		table += '</table>';
 
-				resultTable.innerHTML += table;
+				resultTable.innerHTML = table;
 			};
 			$("#e2s-convert").on("click", function() {
 				// remove quotes from text
@@ -132,7 +132,7 @@ function e2s_init() {
 				<input type="button" name="e2s-convert" id="e2s-convert" value="Convert">
 			</form>
 
-			<div id="result-table">test</div>
+			<div id="result-table"></div>
 
 			<?php // wp_nonce_field('test_nonce_action_e2s', 'test_nonce_field_e2s'); 
 			?>
