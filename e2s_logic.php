@@ -1,55 +1,102 @@
 <?php
-function riksbank_soap($datefrom, $dateto) {
+// function riksbank_soap($datefrom, $dateto) {
 
-    // SOAP API does not work on localhost, lets provide some dummy data
-    $wp_url = parse_url( get_site_url(), PHP_URL_HOST ) ;
-    if ($wp_url == 'eur2sek.local') {
-        $riksbankArray = array();
-        $begin = new DateTime( $datefrom );
-        $end   = new DateTime( $dateto );
+//     // SOAP API does not work on localhost, lets provide some dummy data
+//     $wp_url = parse_url( get_site_url(), PHP_URL_HOST ) ;
+//     if ($wp_url == 'eur2sek.local') {
+//         $riksbankArray = array();
+//         $begin = new DateTime( $datefrom );
+//         $end   = new DateTime( $dateto );
 
-        for($i = $begin; $i <= $end; $i->modify('+1 day')){
-            $date_i = $i->format("Y-m-d");
-            $riksbankArray[$date_i] = '10,01';
+//         for($i = $begin; $i <= $end; $i->modify('+1 day')){
+//             $date_i = $i->format("Y-m-d");
+//             $riksbankArray[$date_i] = '10,01';
+//         }
+//     // This is where normal operation gets started
+//     } else {
+//     $client = new SoapClient('https://swea.riksbank.se/sweaWS/wsdl/sweaWS_ssl.wsdl', array('soap_version' => SOAP_1_2));
+
+//     $searchGroupSeries = array(
+//         'groupid'  => '130',
+//         'seriesid' => 'SEKEURPMI'
+//     );
+
+//     $parameters = array(
+//         'searchRequestParameters' => array(
+//             'aggregateMethod'   => 'D',
+//             'datefrom'          => $datefrom,
+//             'dateto'            => $dateto,
+//             'languageid'        => 'en',
+//             'min'               => false,
+//             'avg'               => false,
+//             'max'               => false,
+//             'ultimo'            => false,
+//             'searchGroupSeries' => $searchGroupSeries
+//         )
+//     );
+
+//     try {
+//         $response = $client->getInterestAndExchangeRates($parameters);
+//     } catch (SoapFault $exception) {
+
+//         echo $exception;
+//     }
+
+//     $riksbankArray = array();
+
+//     foreach ($response->return->groups->series->resultrows as $resultrow) {
+//         $date = $resultrow->date;
+//         $value = $resultrow->value;
+//         $riksbankArray[$date] = $value;
+//     }
+// }
+//     return $riksbankArray;
+// }
+
+function riksbank_rest($datefrom) {
+    $endpoint = 'https://api.riksbank.se/swea/v1/Observations/sekeurpmi/';
+
+    $curl = curl_init();
+    curl_setopt_array($curl, [
+        CURLOPT_URL => $endpoint . $datefrom,
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_ENCODING => "",
+        CURLOPT_MAXREDIRS => 10,
+        CURLOPT_TIMEOUT => 30,
+        CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+        CURLOPT_CUSTOMREQUEST => "GET",
+    ]);
+
+    $response = curl_exec($curl);
+    $err = curl_error($curl);
+
+    curl_close($curl);
+    // debug_to_console($err);
+
+
+    // debug_to_console($response);
+
+    $response_array = json_decode($response, TRUE);
+    // debug_to_console($response_array);
+    // error_log($response_array);
+    // error_log(print_r($response_array));
+
+
+    function convertArray($response_array) {
+        $result = array();
+
+        foreach ($response_array as $item) {
+            $result[$item['date']] = $item['value'];
         }
-    // This is where normal operation gets started
-    } else {
-    $client = new SoapClient('https://swea.riksbank.se/sweaWS/wsdl/sweaWS_ssl.wsdl', array('soap_version' => SOAP_1_2));
 
-    $searchGroupSeries = array(
-        'groupid'  => '130',
-        'seriesid' => 'SEKEURPMI'
-    );
-
-    $parameters = array(
-        'searchRequestParameters' => array(
-            'aggregateMethod'   => 'D',
-            'datefrom'          => $datefrom,
-            'dateto'            => $dateto,
-            'languageid'        => 'en',
-            'min'               => false,
-            'avg'               => false,
-            'max'               => false,
-            'ultimo'            => false,
-            'searchGroupSeries' => $searchGroupSeries
-        )
-    );
-
-    try {
-        $response = $client->getInterestAndExchangeRates($parameters);
-    } catch (SoapFault $exception) {
-
-        echo $exception;
+        return $result;
     }
 
-    $riksbankArray = array();
+    $riksbankArray = convertArray($response_array);
+    // error_log(print_r($riksbankArray));
+    // debug_to_console($riksbankArray);
 
-    foreach ($response->return->groups->series->resultrows as $resultrow) {
-        $date = $resultrow->date;
-        $value = $resultrow->value;
-        $riksbankArray[$date] = $value;
-    }
-}
+
     return $riksbankArray;
 }
 
@@ -83,11 +130,12 @@ function e2s_logic() {
     //     exit; // Get out of here, the nonce is rotten!
     // } else {
 
-        /* Set locale to Swedish */
-// setlocale( LC_NUMERIC, 'sv_SE.UTF-8');
-
+    /* Set locale to Swedish */
+    // setlocale( LC_NUMERIC, 'sv_SE.UTF-8');
+    // debug_to_console('test');
 
     $e2sinput = $_POST['e2s_input'][0]['value'];
+    // debug_to_console($e2sinput);
 
     //Map lines of the string returned by file function to $rows array.
     $rows   = str_getcsv($e2sinput, "\n");
@@ -113,16 +161,16 @@ function e2s_logic() {
         $date_day = strtolower(date('l', $date));
 
         // Riksbank does not publish exchange rates on weekend days, so we need to get the exchange rate of the preceeding friday
-        if ($date_day == 'saturday' ) {
-            $date = new DateTime( date('Y-m-d', $date) );
+        if ($date_day == 'saturday') {
+            $date = new DateTime(date('Y-m-d', $date));
             $date->modify('-1 day');
             $date = $date->format("Y-m-d");
-        } elseif ($date_day == 'sunday' ) {
-            $date = new DateTime( date('Y-m-d', $date) );
+        } elseif ($date_day == 'sunday') {
+            $date = new DateTime(date('Y-m-d', $date));
             $date->modify('-2 days');
             $date = $date->format("Y-m-d");
         } else {
-        $date = date('Y-m-d', $date);
+            $date = date('Y-m-d', $date);
         }
         $e2sinput_array[$key]['Value date'] = $date;
         $dateArray[] = $e2sinput_array[$key]['Value date'];
@@ -132,7 +180,7 @@ function e2s_logic() {
     $dateto = $dateArray[array_key_last($dateArray)];
 
     // Get the exchange rates for the timespan we are interested in
-    $riksbankArray = riksbank_soap($datefrom, $dateto);
+    $riksbankArray = riksbank_rest($datefrom);
 
     foreach (array_keys($e2sinput_array) as $key) {
         $e2s_purpose  = (!empty($e2sinput_array[$key]['Purpose'])  ? ' | ' . $e2sinput_array[$key]['Purpose']  : '');
@@ -148,18 +196,18 @@ function e2s_logic() {
         //     // Remove N26 currency info
         //     $e2s_purpose = substr($e2s_purpose, strpos($e2s_purpose, "Transaction type") + 18);
         // } else {
-            // Otherwise we need to calculate it ourselves
+        // Otherwise we need to calculate it ourselves
 
-            $date                 = $e2sinput_array[$key]['Value date'];
-            $amount               = number_to_float($e2sinput_array[$key]['Amount']);
-            // $exchangeRate         = number_to_float($riksbankArray[$date]);
-            $exchangeRate         = $riksbankArray[$date];
-            // $amount_sek           = round(($amount * $exchangeRate), 2);
-            $amount_sek            = number_format(($amount * $exchangeRate), 2);
-            error_log('amount: ' . $amount);
-            error_log('amount_sek: ' . $amount_sek);
-            $e2s_exchange_info    = ' | ' . $amount . ' EUR x ' . $exchangeRate;
-            $e2s_purpose          = str_replace(', Transaction type: ', ' | ', $e2s_purpose);
+        $date                 = $e2sinput_array[$key]['Value date'];
+        $amount               = number_to_float($e2sinput_array[$key]['Amount']);
+        // $exchangeRate         = number_to_float($riksbankArray[$date]);
+        $exchangeRate         = $riksbankArray[$date];
+        // $amount_sek           = round(($amount * $exchangeRate), 2);
+        $amount_sek            = number_format(($amount * $exchangeRate), 2);
+        error_log('amount: ' . $amount);
+        error_log('amount_sek: ' . $amount_sek);
+        $e2s_exchange_info    = ' | ' . $amount . ' EUR x ' . $exchangeRate;
+        $e2s_purpose          = str_replace(', Transaction type: ', ' | ', $e2s_purpose);
         // }
         $e2sinput_array[$key]['Amount']      = $amount_sek;
         $e2sinput_array[$key]['Currency'] = "SEK";
@@ -185,6 +233,7 @@ function e2s_logic() {
     rewind($buffer);
     $csv = stream_get_contents($buffer);
     fclose($buffer);
+    error_log($csv);
     wp_send_json($csv);
 }
 // }

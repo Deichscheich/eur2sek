@@ -5,7 +5,7 @@
  * @wordpress-plugin
  * Plugin Name:       EUR2SEK
  * Plugin URI:        https://digitalerdurchbruch.de
- * Description:       This is a short description of what the plugin does. It's displayed in the WordPress admin area.
+ * Description:       Takes CSV from N26 and transforms EUR to SEK using Riksbank Rest API
  * Version:           1.1.1
  * Author:            Karl Friedrich
  * Author URI:        https://digitalerdurchbruch.de
@@ -49,15 +49,15 @@ function e2s_ajax() {
 	<script>
 		jQuery(function($) {
 			var sendFeedBack = function(response) {
-				console.log('response' + JSON.stringify(response));
+				// console.log('response' + JSON.stringify(response));
 				$('#e2s-input-textarea').val(response);
 
-				var resultTable = document.getElementById('result-table');
+				var resultTable = document.getElementById('e2s-result-table');
 				var responseRows = response.trim().split('\n');
 				var responseCells = '';
 				var resultTableHeader = '';
 				var resultTableRows = '';
-				var table ='';
+				var table = '';
 
 				responseRows.forEach(function(row, row_index) {
 					var resultTableColumns = '';
@@ -66,20 +66,20 @@ function e2s_ajax() {
 						resultTableColumns += row_index == 0 ? '<th>' + column + '</th>' : '<td>' + column + '</td>';
 					});
 					if (row_index == 0) {
-        				resultTableHeader += '<tr>' + resultTableColumns + '</tr>';
-    			    } else {
-      			      resultTableRows += '<tr>' + resultTableColumns + '</tr>';
-    			    }
+						resultTableHeader += '<tr>' + resultTableColumns + '</tr>';
+					} else {
+						resultTableRows += '<tr>' + resultTableColumns + '</tr>';
+					}
 				});
 
-				table += '<table>';
-		        	table += '<thead>';
-       		    		table += resultTableHeader;
-        			table += '</thead>';
-        			table += '<tbody>';
-            			table += resultTableRows;
-        			table += '</tbody>';
-   		 		table += '</table>';
+				table += '<table style="border: 1px;">';
+				table += '<thead>';
+				table += resultTableHeader;
+				table += '</thead>';
+				table += '<tbody>';
+				table += resultTableRows;
+				table += '</tbody>';
+				table += '</table>';
 
 				resultTable.innerHTML = table;
 			};
@@ -132,7 +132,7 @@ function e2s_init() {
 				<input type="button" name="e2s-convert" id="e2s-convert" value="Convert">
 			</form>
 
-			<div id="result-table"></div>
+			<div id="e2s-result-table"></div>
 
 			<?php // wp_nonce_field('test_nonce_action_e2s', 'test_nonce_field_e2s'); 
 			?>
