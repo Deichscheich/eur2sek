@@ -6,7 +6,7 @@
  * Plugin Name:       EUR2SEK
  * Plugin URI:        https://digitalerdurchbruch.de
  * Description:       Takes CSV from N26 and transforms EUR to SEK using Riksbank Rest API
- * Version:           1.1.1
+ * Version:           1.2.0
  * Author:            Karl Friedrich
  * Author URI:        https://digitalerdurchbruch.de
  * License:           GPL-2.0+
